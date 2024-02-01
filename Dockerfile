@@ -23,7 +23,7 @@ WORKDIR /app
 # Install any python packages you need
 COPY requirements.txt requirements.txt
 
-RUN python3 -m pip install -r requirements.txt
+RUN python3 -m pip install -r requirements_dev.txt
 
 # Upgrade pip
 RUN python3 -m pip install --upgrade pip
