@@ -21,7 +21,7 @@ RUN mkdir /app
 WORKDIR /app
 
 # Install any python packages you need
-COPY requirements.txt requirements.txt
+COPY requirements_dev.txt requirements_dev.txt
 
 RUN python3 -m pip install -r requirements_dev.txt
 
