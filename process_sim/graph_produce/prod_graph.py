@@ -1,38 +1,49 @@
 
 import torch as th
-import networkx as nx
 import pandas as pd
 
 
 class ProdGraph:
     def __init__(self, adjacency, distributions, buffer_limits, batch_size=100):
         
+        """
+        This class represents a discrete production graph.
+
+        Feature tensor rows:
+        0: state,
+        1: cycle time
+        2: failure time
+        3: fix time
+        4: production token
+        5: limit buffer out
+        6: buffer out
+        """
+        
+        self.state_idx = 0
+        self.tc_idx = 1
+        self.tf_idx = 2
+        self.tfix_idx = 3
+        self.prod_token = 4
+        self.limbout_idx = 5
+        self.bout_idx = 6
+        
         n_nodes = adjacency.shape[0]
         self.n_nodes = n_nodes
-        self.batch_size = batch_size
         self.adjacency = th.from_numpy(adjacency)
         self.distributions = distributions
         
-        G = nx.DiGraph(adjacency)
-        topological_order = th.tensor(list(nx.topological_sort(G)))
-        self.topological_order = topological_order
-        
-        
-        
         self.features = th.zeros(n_nodes, 8)
-        
-        for i in range(self.n_nodes):
-            if th.sum(self.adjacency[:, i]) == 0:
-                self.features[i, 6] = th.inf
+        self.features[:, 5] = buffer_limits
                 
         self.lapsed_time = 0
         
+        self.batch_size = batch_size
         self.batch_counter = 0
         self.output_data = th.zeros(batch_size, 5)
         self.log = None
         
         
-    def add_to_log(self, data):
+    def add_to_log(self, node_index):
         
         if self.batch_counter == self.batch_size:
             self.log = pd.concat([self.log, pd.DataFrame({'time': self.output_data[:, 0].cpu().detach(), 
@@ -43,17 +54,18 @@ class ProdGraph:
             self.output_data = th.zeros((self.batch_size, 5))
             self.batch_counter = 0
         else:
-            self.output_data[self.batch_counter] = th.tensor(data)
+            self.output_data[self.batch_counter] = th.tensor(self.features[node_index])
             self.batch_counter += 1
             
     def move_supplies(self, node_index):
         supply_vec = self.adjacency[:, node_index]
         
+        num_supply_sets = float('inf')
+        
         if th.sum(supply_vec) > 0:
-            num_supply_sets = th.min(th.nan_to_num(self.output_buffer / supply_vec, nan=float('inf')))
-            if num_supply_sets >= 1 and self.input_buffer[node_index] == 0:
-                self.output_buffer -= supply_vec
-                self.input_buffer[node_index] = 1
+            num_supply_sets = th.min(th.nan_to_num(self.features[:, 6] / supply_vec, nan=float('inf')))
+
+        return num_supply_sets, supply_vec
         
     def get_entry(self):
         
@@ -75,7 +87,7 @@ class ProdGraph:
     def forward(self):
         
         features = self.features
-        min_value, entry_index, type_index = self.get_entry()
+        min_value, entry_index, event_type_index = self.get_entry()
         
         if min_value == th.inf:
             entry_index = th.randint(0, self.n_nodes)
@@ -88,73 +100,86 @@ class ProdGraph:
         
         node_index = entry_index
         
-        match features[node_index, 0]:
+        current_features = features[node_index]
+        
+        match current_features[self.state_idx]:
             case 0:
-                if min_value == 0:
-                    if type_index == 0:
-                        # Check if the part is finished
-                        if self.output_buffer[node_index] < self.buffer_limits[node_index]:
-                            self.output_buffer[node_index] += 1
+                match event_type_index:
+                    case 0:
+                        if current_features[self.bout_idx] < current_features[self.limbout_idx]:
+                            current_features[self.bout_idx] += 1
+                            current_features[self.prod_token] = 0
                             
-                            if self.input_buffer[node_index] > 0:
-                                # Start next part
-                                self.remaining_time[node_index, 0] = max(self.distributions[node_index][type_index].sample(), 1)
-                                self.input_buffer[node_index] -= 1
-                                self.add_to_log([self.lapsed_time, node_index.item(), self.input_buffer[node_index].item(), self.output_buffer[node_index].item(), 0])
-                            else:
-                                # Switch to starved
-                                self.states[node_index, 0] = 0
-                                self.states[node_index, 1] = 1
-                                self.add_to_log([self.lapsed_time, node_index.item(), self.input_buffer[node_index].item(), self.output_buffer[node_index].item(), 1])
+                            num_supplies, supply_vec = self.move_supplies(node_index)
                         
+                            if num_supplies < 1:
+                                # Switch to starved
+                                current_features[self.state_idx] = 1
+                            else:
+                                # Start next part
+                                current_features[self.tc_idx] = max(self.distributions[node_index][event_type_index].sample(), 1)
+                                current_features[self.prod_token] = 1
                         else:
                             # Switch to blocked
-                            self.states[node_index, 0] = 0
-                            self.states[node_index, 2] = 1
-                            self.add_to_log([self.lapsed_time, node_index.item(), self.input_buffer[node_index].item(), self.output_buffer[node_index].item(), 2])
-                    elif type_index == 1:
+                            current_features[self.state_idx] = 2
+                            
+                    case 1:
                         # Switch to failed
-                        self.states[node_index, 0] = 0
-                        self.states[node_index, 3] = 1
-                        self.remaining_time[node_index, 2] = max(self.distributions[node_index][type_index].sample(), 1)
-                        self.add_to_log([self.lapsed_time, node_index.item(), self.input_buffer[node_index].item(), self.output_buffer[node_index].item(), 3])
-                    
+                        current_features[self.state_idx] = 3
+
             case 1:
-                if self.input_buffer[node_index] > 0:
-                    # Start producing
-                    self.input_buffer[node_index] -= 1
-                    self.remaining_time[node_index, 0] = max(self.distributions[node_index][type_index].sample(), 1)
-                    
-                    # Switch to producing state
-                    self.states[node_index, 0] = 1
-                    self.states[node_index, 1] = 0
-                    self.add_to_log([self.lapsed_time, node_index.item(), self.input_buffer[node_index].item(), self.output_buffer[node_index].item(), 0])
+                num_supplies, supply_vec = self.move_supplies(node_index)
+                
+                if num_supplies >= 1:
+                    if current_features[self.bout_idx] < current_features[self.limbout_idx]:
+                        current_features[self.tc_idx] = max(self.distributions[node_index][event_type_index].sample(), 1)
+                        current_features[self.prod_token] = 1
+                        self.features[:, self.bout_idx] -= supply_vec
+                    else:
+                        self.features[node_index, self.state_idx] = 1
                 
             case 2:
-                if self.output_buffer[node_index] < self.buffer_limits[node_index]:
-                    self.output_buffer[node_index] += 1
+                if current_features[self.bout_idx] < current_features[self.limbout_idx]:
+                    current_features[self.bout_idx] += 1
+                    current_features[self.prod_token] = 0
                     
-                    if self.input_buffer[node_index] > 0:
-                        # Start next part
-                        self.remaining_time[node_index, 0] = max(self.distributions[node_index][type_index].sample(), 1)
-                        self.input_buffer[node_index] -= 1
-                        
-                        # Switch to producing state
-                        self.states[node_index, 0] = 1
-                        self.states[node_index, 2] = 0
-                        self.add_to_log([self.lapsed_time, node_index.item(), self.input_buffer[node_index].item(), self.output_buffer[node_index].item(), 0])
-                    else:
+                    num_supplies, supply_vec = self.move_supplies(node_index)
+                    
+                    if num_supplies < 1:
                         # Switch to starved
-                        self.states[node_index, 1] = 1
-                        self.states[node_index, 2] = 0
-                        self.add_to_log([self.lapsed_time, node_index.item(), self.input_buffer[node_index].item(), self.output_buffer[node_index].item(), 1])
+                        current_features[self.state_idx] = 1
+                    else:
+                        # Start next part
+                        current_features[self.state_idx] = 0
+                        current_features[self.tc_idx] = max(self.distributions[node_index][event_type_index].sample(), 1)
+                        current_features[self.prod_token] = 1
+                        self.features[:, self.bout_idx] -= supply_vec
             
             case 3:
-                features[node_index, 0] = 0
-                # self.states[node_index, 0] = 1
-                # self.states[node_index, 3] = 0
-                # self.remaining_time[node_index, 0] = max(self.distributions[node_index][type_index].sample(), 1)
-                # self.remaining_time[node_index, 1] = max(self.distributions[node_index][type_index].sample(), 1)
-                # self.add_to_log([self.lapsed_time, node_index.item(), self.input_buffer[node_index].item(), self.output_buffer[node_index].item(), 0])
+                if current_features[self.bout_idx] < self.features[self.limbout_idx]:
+                    current_features[self.bout_idx] += 1
+                    current_features[self.prod_token] = 0
+                    
+                    num_supplies, supply_vec = self.move_supplies(node_index)
+                
+                    if num_supplies < 1:
+                        # Switch to starved
+                        current_features[self.state_idx] = 1
+                    
+                    else:
+                        # Start next part
+                        current_features[self.state_idx] = 0
+                        current_features[self.tc_idx] = max(self.distributions[node_index][event_type_index].sample(), 1)
+                        current_features[self.prod_token] = 1
+                        self.features[:, self.bout_idx] -= supply_vec
+                else:
+                    # Switch to blocked
+                    current_features[self.state_idx] = 2
+                    
+        # if current_features != features[node_index]:
+        #     self.add_to_log(node_index)
+            
+            
         
         self.features = features
+                    
