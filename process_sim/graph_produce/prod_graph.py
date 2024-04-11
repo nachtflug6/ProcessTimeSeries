@@ -32,29 +32,26 @@ class ProdGraph:
         self.adjacency = th.from_numpy(adjacency)
         self.distributions = distributions
         
-        self.features = th.zeros(n_nodes, 8)
-        self.features[:, 5] = buffer_limits
+        self.features = th.zeros(n_nodes, 7)
+        self.features[:, self.limbout_idx] = buffer_limits
                 
         self.lapsed_time = 0
         
         self.batch_size = batch_size
         self.batch_counter = 0
-        self.output_data = th.zeros(batch_size, 5)
-        self.log = None
+        self.output_data = th.zeros(batch_size, 8)
+        self.log = th.empty(0, 8)
         
         
     def add_to_log(self, node_index):
         
         if self.batch_counter == self.batch_size:
-            self.log = pd.concat([self.log, pd.DataFrame({'time': self.output_data[:, 0].cpu().detach(), 
-                                                           'node': self.output_data[:, 1].cpu().detach(), 
-                                                           'input_buffer': self.output_data[:, 2].cpu().detach(), 
-                                                           'output_buffer': self.output_data[:, 3].cpu().detach(), 
-                                                           'state': self.output_data[:, 4].cpu().detach()})])
-            self.output_data = th.zeros((self.batch_size, 5))
+            self.log = th.cat((self.log, self.output_data), dim=0)
+            self.output_data = th.zeros(self.batch_size, 8)
             self.batch_counter = 0
         else:
-            self.output_data[self.batch_counter] = th.tensor(self.features[node_index])
+            self.output_data[self.batch_counter, 0] = self.lapsed_time
+            self.output_data[self.batch_counter, 1:] = self.features[node_index]
             self.batch_counter += 1
             
     def move_supplies(self, node_index):
@@ -74,8 +71,8 @@ class ProdGraph:
         # Define entry point
         remaining_time = th.zeros(self.n_nodes, 3)
         remaining_time[:, 0] = th.where((features[:, 0] == 0) & (features[:, 1] >= 0), features[:, 1], float('inf'))
-        remaining_time[:, 1] = th.where((features[:, 0] == 0) & (features[:, 1] >= 0), features[:, 1], float('inf'))
-        remaining_time[:, 2] = th.where((features[:, 0] == 0) & (features[:, 1] >= 0), features[:, 1], float('inf'))
+        remaining_time[:, 1] = th.where((features[:, 0] == 0) & (features[:, 2] >= 0), features[:, 2], float('inf'))
+        remaining_time[:, 2] = th.where((features[:, 0] == 3) & (features[:, 3] >= 0), features[:, 3], float('inf'))
         
         min_value, flat_index = th.min(remaining_time.view(-1), dim=0)
         
@@ -86,11 +83,16 @@ class ProdGraph:
     
     def forward(self):
         
+        
+        
         features = self.features
+        
+        #print(features[:, 1:4])
+        
         min_value, entry_index, event_type_index = self.get_entry()
         
         if min_value == th.inf:
-            entry_index = th.randint(0, self.n_nodes)
+            entry_index = th.randint(low=0, high=self.n_nodes, size=(1,)).item()
         else:
             lapsed_time = min_value.item()
             features[:, 1] = th.where(features[:, 0] == 0, features[:, 1] - lapsed_time, features[:, 1])
@@ -101,6 +103,9 @@ class ProdGraph:
         node_index = entry_index
         
         current_features = features[node_index]
+        
+        
+        self.add_to_log(node_index)
         
         match current_features[self.state_idx]:
             case 0:
@@ -156,7 +161,7 @@ class ProdGraph:
                         self.features[:, self.bout_idx] -= supply_vec
             
             case 3:
-                if current_features[self.bout_idx] < self.features[self.limbout_idx]:
+                if current_features[self.bout_idx] < current_features[self.limbout_idx]:
                     current_features[self.bout_idx] += 1
                     current_features[self.prod_token] = 0
                     
@@ -179,7 +184,7 @@ class ProdGraph:
         # if current_features != features[node_index]:
         #     self.add_to_log(node_index)
             
-            
+        features[node_index] = current_features
         
         self.features = features
                     
