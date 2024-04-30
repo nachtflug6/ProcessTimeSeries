@@ -1,7 +1,7 @@
 import unittest
 import torch
 
-from discrete_manufacturing_sim.dg.production_dag import ProductionDirectedAcyclicGraph
+from discrete_manufacturing_sim.dg.wdg import WeightedDirectedGraph
 
 class TestProductionDirectedAcyclicGraph(unittest.TestCase):
     def test_add_feature(self):
@@ -16,7 +16,7 @@ class TestProductionDirectedAcyclicGraph(unittest.TestCase):
         states = torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15]], dtype=torch.float32)
         
         # Create graph
-        pdg = ProductionDirectedAcyclicGraph(adjacency_matrix, states)
+        pdg = WeightedDirectedGraph(adjacency_matrix, states)
         
         # Test add_feature()
         pdg.add_feature('new_feature', torch.tensor([0, 1, 0, 1, 0], dtype=torch.float32))
@@ -35,7 +35,7 @@ class TestProductionDirectedAcyclicGraph(unittest.TestCase):
         states = torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15]], dtype=torch.float32)
         
         # Create graph
-        pdg = ProductionDirectedAcyclicGraph(adjacency_matrix, states)
+        pdg = WeightedDirectedGraph(adjacency_matrix, states)
         
         # Test add_edge()
         pdg.add_edge(0, 4, 2)  # Add edge from node 0 to node 4 with weight 2

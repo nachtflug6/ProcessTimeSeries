@@ -1,6 +1,6 @@
 from discrete_manufacturing_sim.dg.generic_dg import GenericDirectedGraph
 
-class ProductionDirectedAcyclicGraph(GenericDirectedGraph):
+class WeightedDirectedGraph(GenericDirectedGraph):
     def __init__(self, adjacency_matrix, states):
         super().__init__(adjacency_matrix)
         self.add_feature('states', states)
