@@ -1,0 +1,45 @@
+import torch
+
+class GenericPetriNet:
+    def __init__(self, num_places, num_transitions):
+        self.num_places = num_places
+        self.num_transitions = num_transitions
+        self.incidence_matrix = torch.zeros(num_places, num_transitions, dtype=torch.float32)
+        self.initial_marking = torch.zeros(num_places, dtype=torch.float32)
+
+    def add_input_arc(self, place, transition, weight=1):
+        self.incidence_matrix[place, transition] = weight
+
+    def add_output_arc(self, transition, place, weight=1):
+        self.incidence_matrix[place, transition] = -weight
+
+    def set_initial_marking(self, place, marking):
+        self.initial_marking[place] = marking
+
+    def get_initial_marking(self):
+        return self.initial_marking
+
+    def fire_transition(self, marking, transition):
+        new_marking = marking.clone()
+        new_marking += torch.matmul(self.incidence_matrix[:, transition], marking)
+        return new_marking
+
+# Example usage
+num_places = 3
+num_transitions = 2
+
+petri_net = PetriNet(num_places, num_transitions)
+
+petri_net.add_input_arc(0, 0)  # Input arc from place 0 to transition 0
+petri_net.add_output_arc(0, 1)  # Output arc from transition 0 to place 0
+petri_net.add_input_arc(1, 1)  # Input arc from place 1 to transition 1
+petri_net.add_output_arc(1, 2)  # Output arc from transition 1 to place 2
+
+petri_net.set_initial_marking(0, 1)  # Initial marking of place 0 is 1
+
+initial_marking = petri_net.get_initial_marking()
+print("Initial marking:", initial_marking)
+
+# Firing transition 0 from the initial marking
+new_marking = petri_net.fire_transition(initial_marking, 0)
+print("New marking after firing transition 0:", new_marking)
