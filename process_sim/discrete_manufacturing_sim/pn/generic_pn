@@ -61,14 +61,14 @@ mpn = MultiPetriNet(num_pns=1, length_pns=2)
 # Set initial marking
 mpn.set_initial_marking(0, [1, 0])
 
-# Set weight for the first transition-place pair
-mpn.set_weight(0, 0, 1)
+# # Set weight for the first transition-place pair
+# mpn.set_weight(0, 0, 1)
 
-# Set weight for the first place-transition pair
-mpn.set_weight(0, 1, 2)
+# # Set weight for the first place-transition pair
+# mpn.set_weight(0, 1, 2)
 
-# Fire the first transition
-mpn.fire_transition(0, 0)
+# # Fire the first transition
+# mpn.fire_transition(0, 0)
 
-# Print the state
-mpn.print_state()
+# # Print the state
+# mpn.print_state()

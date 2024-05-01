@@ -18,13 +18,17 @@
 				"ms-python.python",
 				"ms-azuretools.vscode-docker",
 				"ms-toolsai.jupyter"
-			]
-
+			],
+			"settings": {
+				"editor.defaultFormatter": "ms-python.autopep8",
+				"editor.formatOnSave": true
+			}
 		}
 	},
-	"settings": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	},
+	"features": {
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	  }
+
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},

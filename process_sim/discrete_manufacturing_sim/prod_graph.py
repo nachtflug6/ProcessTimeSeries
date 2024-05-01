@@ -2,98 +2,99 @@ import torch
 import pandas as pd
 
 
-class ProdGraph:
-    def __init__(
-        self,
-        adjacency_mtx,
-        distribution_mtx,
-        capacity_mtx,
-        transition_fsm,
-        batch_size=100,
-        device="cpu",
-    ):
 
-        self.adjacency_mtx = adjacency_mtx
-        n_nodes = adjacency_mtx.shape[0]
-        self.n_nodes = n_nodes
+# class ProdGraph:
+#     def __init__(
+#         self,
+#         adjacency_mtx,
+#         distribution_mtx,
+#         capacity_mtx,
+#         transition_fsm,
+#         batch_size=100,
+#         device="cpu",
+#     ):
 
-        self.epsilon = 1e-6
+#         self.adjacency_mtx = adjacency_mtx
+#         n_nodes = adjacency_mtx.shape[0]
+#         self.n_nodes = n_nodes
 
-        self.node_state_mtx = torch.zeros(n_nodes, 5)
+#         self.epsilon = 1e-6
 
-        self.state_transition_mtx = torch.tensor(
-            [[0, 1, 0, 0], [1, 0, 1, 1], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=torch.float
-        )
+#         self.node_state_mtx = torch.zeros(n_nodes, 5)
 
-        self.state_event_mtx = torch.tensor(
-            [[0, 0, 0, 1, 0], [1, 1, 0, 0, 1], [0, 0, 0, 0, 1], [0, 0, 1, 0, 0]], dtype=torch.float
-        )
+#         self.state_transition_mtx = torch.tensor(
+#             [[0, 1, 0, 0], [1, 0, 1, 1], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=torch.float
+#         )
 
-
-        self.markings_mtx = torch.zeros(n_nodes, 2)
-        self.capacity_mtx = capacity_mtx
-        self.weight_mtx = torch.zeros(n_nodes, 4)
-        self.node_state_mtx = torch.zeros(n_nodes, 4)
-        self.node_state_mtx[:, 0] = 1
-        self.transition_fire_mtx = torch.zeros(n_nodes, 2)
-        self.distribution_mtx = distribution_mtx
-        self.transition_fsm = transition_fsm
-        self.event_matrix = torch
-
-        self.steady_event_available_mtx = torch.zeros(n_nodes, 2)
-        self.timed_event_available_mtx = torch.zeros(n_nodes, 3)
-        self.event_available_mtx = torch.zeros(n_nodes, 5)
-
-        self.event_required_mtx = torch.zeros(n_nodes, 5)
-        self.steady_event_required_mtx = torch.zeros(n_nodes, 2)
-        self.timed_event_required_mtx = torch.zeros(n_nodes, 3)
-
-        self.steady_event_executable_mtx = torch.zeros(n_nodes, 2)
-
-        self.nodes_ready = torch.zeros(n_nodes, 1)
-
-    def update_steady_event_available(self):
-        M_transposed = self.adjacency_mtx.t()
-        v_t = self.markings_mtx[:, 1].t()
-        epsilon = self.epsilon
-
-        result = M_transposed / (v_t + epsilon)
-        final_result = result.t()
-        column_maxes = final_result.max(dim=0)[0]
-        binary_results = (column_maxes < 1).int()
-        self.event_available_mtx[:, -2] = binary_results
-        self.event_available_mtx[:, -1] = torch.where(self.markings_mtx[:, 1] <= self.capacity_mtx[:, 1], 1, 0)
-
-    def update_event_required(self):
-        event_required_mtx = torch.matmul(self.node_state_mtx, self.state_event_mtx)
-        self.event_required_mtx = event_required_mtx
-        self.timed_event_required_mtx = event_required_mtx[:,0:3]
-        self.steady_event_required_mtx = event_required_mtx[:,-2:]
-
-    def update_nodes_ready(self):
-        self.update_steady_event_available()
-        print(self.steady_event_available_mtx)
-        print(self.event_required_mtx)
-        rows_match = (self.steady_event_available_mtx * self.event_required_mtx == self.event_required_mtx).all(dim=1)
-        self.nodes_ready = rows_match.int().unsqueeze(1)
-
-    def node_state_transition(self, i, event_vector):
-        self.node_state_mtx[i] = self.transition_fsm.transition(self.node_state_mtx[i], event_vector)
+#         self.state_event_mtx = torch.tensor(
+#             [[0, 0, 0, 1, 0], [1, 1, 0, 0, 1], [0, 0, 0, 0, 1], [0, 0, 1, 0, 0]], dtype=torch.float
+#         )
 
 
-    def forward(self):
-        self.update_event_active()
+#         self.markings_mtx = torch.zeros(n_nodes, 2)
+#         self.capacity_mtx = capacity_mtx
+#         self.weight_mtx = torch.zeros(n_nodes, 4)
+#         self.node_state_mtx = torch.zeros(n_nodes, 4)
+#         self.node_state_mtx[:, 0] = 1
+#         self.transition_fire_mtx = torch.zeros(n_nodes, 2)
+#         self.distribution_mtx = distribution_mtx
+#         self.transition_fsm = transition_fsm
+#         self.event_matrix = torch
 
-        # Check if timed event
-        if torch.sum(self.timed_event_required_mtx) > 0:
-            pass
+#         self.steady_event_available_mtx = torch.zeros(n_nodes, 2)
+#         self.timed_event_available_mtx = torch.zeros(n_nodes, 3)
+#         self.event_available_mtx = torch.zeros(n_nodes, 5)
 
-        # Execute static events
-        self.update_steady_event_available()
+#         self.event_required_mtx = torch.zeros(n_nodes, 5)
+#         self.steady_event_required_mtx = torch.zeros(n_nodes, 2)
+#         self.timed_event_required_mtx = torch.zeros(n_nodes, 3)
 
-        self.update_beta()
-        self.update_gamma()
-        self.update_node_event()
+#         self.steady_event_executable_mtx = torch.zeros(n_nodes, 2)
+
+#         self.nodes_ready = torch.zeros(n_nodes, 1)
+
+    # def update_steady_event_available(self):
+    #     M_transposed = self.adjacency_mtx.t()
+    #     v_t = self.markings_mtx[:, 1].t()
+    #     epsilon = self.epsilon
+
+    #     result = M_transposed / (v_t + epsilon)
+    #     final_result = result.t()
+    #     column_maxes = final_result.max(dim=0)[0]
+    #     binary_results = (column_maxes < 1).int()
+    #     self.event_available_mtx[:, -2] = binary_results
+    #     self.event_available_mtx[:, -1] = torch.where(self.markings_mtx[:, 1] <= self.capacity_mtx[:, 1], 1, 0)
+
+#     def update_event_required(self):
+#         event_required_mtx = torch.matmul(self.node_state_mtx, self.state_event_mtx)
+#         self.event_required_mtx = event_required_mtx
+#         self.timed_event_required_mtx = event_required_mtx[:,0:3]
+#         self.steady_event_required_mtx = event_required_mtx[:,-2:]
+
+#     def update_nodes_ready(self):
+#         self.update_steady_event_available()
+#         print(self.steady_event_available_mtx)
+#         print(self.event_required_mtx)
+#         rows_match = (self.steady_event_available_mtx * self.event_required_mtx == self.event_required_mtx).all(dim=1)
+#         self.nodes_ready = rows_match.int().unsqueeze(1)
+
+#     def node_state_transition(self, i, event_vector):
+#         self.node_state_mtx[i] = self.transition_fsm.transition(self.node_state_mtx[i], event_vector)
+
+
+#     def forward(self):
+#         self.update_event_active()
+
+#         # Check if timed event
+#         if torch.sum(self.timed_event_required_mtx) > 0:
+#             pass
+
+#         # Execute static events
+#         self.update_steady_event_available()
+
+#         self.update_beta()
+#         self.update_gamma()
+#         self.update_node_event()
 
     # def add_to_log(self, node_index):
 
