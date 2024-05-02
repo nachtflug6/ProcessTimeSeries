@@ -1,6 +1,44 @@
 import torch
 import pandas as pd
 
+from multi_linear_petri_net import MultiLinearPetriNet
+from discrete_manufacturing_sim.dg.wdg import WeightedDirectedGraph
+
+adjacency_matrix = torch.tensor([[0, 1],  # Connection from PN 0 to PN 1
+                                 [0, 0]])  # No connections from PN 1
+states = [None, None]  # Placeholder states for the nodes
+connectivity_graph = WeightedDirectedGraph(adjacency_matrix)
+mlin_pn = MultiLinearPetriNet(
+    length_pns=2, connectivity_graph=connectivity_graph)
+
+
+class ProcessSim:
+    def __init__(self, mlin_pn: MultiLinearPetriNet, process_name, duration):
+        self.mlin_pn = mlin_pn
+        self.process_name = process_name
+        self.duration = duration
+        self.time_elapsed = 0
+        self.is_complete = False
+
+    def simulate(self, time_to_simulate):
+        """
+        Simulate the process for a given amount of time.
+
+        Args:
+            time_to_simulate (int): The amount of time to simulate the process.
+        """
+        if not self.is_complete:
+            time_remaining = self.duration - self.time_elapsed
+            time_to_simulate = min(time_to_simulate, time_remaining)
+            self.time_elapsed += time_to_simulate
+
+            if self.time_elapsed == self.duration:
+                self.is_complete = True
+                print(f"{self.process_name} completed.")
+            else:
+                print(f"{self.process_name} is still running.")
+        else:
+            print(f"{self.process_name} has already completed.")
 
 
 # class ProdGraph:
