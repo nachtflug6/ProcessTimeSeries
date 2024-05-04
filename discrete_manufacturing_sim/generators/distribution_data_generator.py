@@ -1,12 +1,13 @@
 import numpy as np
 
+
 class DistributionDataGenerator:
     def __init__(
         self,
         means_matrix,
-        distribution_types=["uniform", "normal", "exponential"],
-        uniform_params={"spread": 1},
-        normal_params={"std_dev": 1},
+        distribution_types=["uniform", "normal"],
+        uniform_params={"spread": 0.1},
+        normal_params={"std_dev": 0.1},
         exponential_params={"lambda": 1}
     ):
         self.means_matrix = means_matrix
@@ -25,13 +26,19 @@ class DistributionDataGenerator:
                 if dist_type == "uniform":
                     mean = self.means_matrix[i, j]
                     spread = self.uniform_params["spread"]
-                    params = {"low": mean - spread / 2, "high": mean + spread / 2}
+                    params = {"low": mean - mean *
+                              (spread / 2), "high": mean + mean*(spread / 2)}
                 elif dist_type == "normal":
-                    params = {"mean": self.means_matrix[i, j], **self.normal_params}
-                elif dist_type == "exponential":
-                    params = {"lambda": 1 / self.means_matrix[i, j], **self.exponential_params}
+                    mean = self.means_matrix[i, j]
+                    std_dev = self.normal_params["std_dev"]
+                    params = {
+                        "mean": mean, "std_dev": std_dev * mean}
+                # elif dist_type == "exponential":
+                #     params = {
+                #         "lambda": 1 / self.means_matrix[i, j], **self.exponential_params}
                 else:
-                    raise ValueError(f"Unsupported distribution type: {dist_type}")
+                    raise ValueError(
+                        f"Unsupported distribution type: {dist_type}")
                 instance_data.append({"type": dist_type, "params": params})
             distributions_data.append(instance_data)
         return distributions_data

@@ -32,7 +32,7 @@ class MultiTemporalEventHandler:
         min_j = min_index % num_columns
 
         event_schedule -= min_value
-        self.runtime += min_value
+        self.runtime += min_value.detach().item()
 
         self.event_schedule = torch.where(
             active_elements, event_schedule, self.event_schedule)
