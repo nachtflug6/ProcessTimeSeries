@@ -32,9 +32,28 @@ ProcessTimeSeries/
 
 ## Supported entry points
 
-- `examples/minimal_simulation.py` — smallest end-to-end runnable demo
+- `examples/minimal_simulation.py` — the main paper-facing runnable demo
 - `main.py` — compatibility wrapper that launches the minimal demo
 - `python3 -m pytest` — preferred test command
+
+## Run the paper demo
+
+This repository should be approached **demo-first**. The main workflow shown in the paper starts from `examples/minimal_simulation.py`.
+
+```bash
+python3 examples/minimal_simulation.py
+python3 examples/minimal_simulation.py --steps 10 --nodes 3
+```
+
+The script prints:
+- total simulated runtime
+- the final FSM `state_matrix`
+- the final Petri-net `markings`
+
+Under the hood, the demo is organized around just **three core concepts**:
+1. a **Petri net** for material flow
+2. a **production FSM** for asset state changes
+3. an **event scheduler** that advances simulated time
 
 ## Development environment
 

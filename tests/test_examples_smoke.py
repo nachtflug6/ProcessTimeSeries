@@ -1,8 +1,9 @@
-from examples.minimal_simulation import build_demo, run_demo
+from examples.minimal_simulation import DemoConfig, build_demo, run_demo
 
 
 def test_build_demo_smoke():
-    sim_handler = build_demo()
+    config = DemoConfig(num_nodes=2, steps=3)
+    sim_handler = build_demo(config)
 
     for _ in range(3):
         sim_handler.simulate()
@@ -13,5 +14,5 @@ def test_build_demo_smoke():
 
 
 def test_run_demo_returns_handler():
-    sim_handler = run_demo(steps=2)
+    sim_handler = run_demo(config=DemoConfig(steps=2), verbose=False)
     assert sim_handler.num_nodes == 2
