@@ -1,0 +1,44 @@
+# Copy this file and edit the values below to define your own DAG-based manufacturing line.
+name: custom_template
+seed: 123
+output_dir: experiments/custom_run/outputs
+
+graph:
+  num_nodes: 3
+  edges:
+    - {source: 0, target: 1, weight: 1}
+    - {source: 1, target: 2, weight: 1}
+
+petri:
+  length_pns: 2
+  initial_markings:
+    - [0, 0]
+    - [0, 0]
+    - [0, 0]
+  capacities:
+    - [1, 5]
+    - [1, 5]
+    - [1, 1000]
+  weights:
+    - [1, 1]
+    - [1, 1]
+    - [1, 1]
+
+events:
+  defaults:
+    cycle_time:
+      type: normal
+      mean: 120.0
+      std_dev: 0.5
+    failure_time:
+      type: normal
+      mean: 20000.0
+      std_dev: 1.0
+    repair_time:
+      type: normal
+      mean: 3600.0
+      std_dev: 0.5
+  per_node: {}
+
+stop_conditions:
+  max_time: 3600

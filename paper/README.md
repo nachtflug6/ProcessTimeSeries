@@ -1,35 +1,26 @@
 # Paper / Reproducibility Notes
 
-Use this folder for artifacts that directly support the accompanying paper.
+This folder collects references for reproducing the paper-facing 5-node manufacturing demo.
 
-## Primary paper demo
-
-The main runnable entry point for the paper-facing simulation is:
+## Primary reproduction command
 
 ```bash
-python3 examples/minimal_simulation.py
+python3 scripts/reproduce_wsc2024.py
 ```
 
-A slightly varied run can be explored with:
+This command loads `configs/paper/wsc2024_demo_5_node.yaml` and writes outputs to `experiments/wsc2024/outputs/`.
 
-```bash
-python3 examples/minimal_simulation.py --steps 10 --nodes 3
-```
+## Outputs
 
-This demo is the canonical reference for the current repository narrative and should stay aligned with the paper description.
+The supported reproduction path produces:
 
-## Recommended contents
+- `buffer_levels.csv`
+- `machine_states.csv`
+- `summary.json`
+- `figure5.png`
 
-- `figures/`: scripts or exported figures used in the manuscript
-- `tables/`: generated tables or CSV summaries
-- `scripts/`: commands that reproduce the main results
-- `README.md`: a map from paper sections to code and notebooks
+## Related references
 
-## Suggested workflow
-
-1. Keep the simulation library in `discrete_manufacturing_sim/`.
-2. Keep `examples/minimal_simulation.py` as the first supported runnable workflow.
-3. Put polished, paper-facing demos in `examples/` or `notebooks/tutorials/`.
-4. Document exactly how to regenerate each figure or table here.
-
-> If a notebook or script is required for the paper, it should be linked from this file and from the main `README.md`.
+- `docs/paper_map.md` — paper concept → code traceability
+- `docs/output_format.md` — output artifact schema
+- `notebooks/tutorials/introduction.ipynb` — tutorial / convenience notebook layered on top of the scriptable path

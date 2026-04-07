@@ -1,0 +1,52 @@
+name: branching_5_node
+description: Example branching DAG for a custom manufacturing graph.
+
+seed: 11
+output_dir: experiments/branching_5_node/outputs
+
+graph:
+  num_nodes: 5
+  edges:
+    - {source: 0, target: 1, weight: 1}
+    - {source: 0, target: 2, weight: 1}
+    - {source: 1, target: 3, weight: 1}
+    - {source: 2, target: 4, weight: 1}
+
+petri:
+  length_pns: 2
+  initial_markings:
+    - [0, 0]
+    - [0, 0]
+    - [0, 0]
+    - [0, 0]
+    - [0, 0]
+  capacities:
+    - [1, 4]
+    - [1, 4]
+    - [1, 4]
+    - [1, 1000]
+    - [1, 1000]
+  weights:
+    - [1, 1]
+    - [1, 1]
+    - [1, 1]
+    - [1, 1]
+    - [1, 1]
+
+events:
+  defaults:
+    cycle_time:
+      type: normal
+      mean: 90.0
+      std_dev: 0.25
+    failure_time:
+      type: normal
+      mean: 12000.0
+      std_dev: 1.0
+    repair_time:
+      type: normal
+      mean: 1800.0
+      std_dev: 0.5
+
+stop_conditions:
+  max_time: 7200

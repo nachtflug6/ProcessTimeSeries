@@ -26,18 +26,24 @@ class MultiLinearPetriNet:
         if len(marking) != self.length_pns:
             raise ValueError(
                 "Length of marking does not match the length of Petri net.")
-        self.markings[pn_idx] = torch.tensor(marking)
+        if any(float(value) < 0 for value in marking):
+            raise ValueError("Initial markings must be non-negative.")
+        self.markings[pn_idx] = torch.tensor(marking, dtype=self.markings.dtype)
 
     def set_capacity(self, pn_idx, place_idx, capacity):
         if pn_idx >= self.num_pns or place_idx >= self.length_pns:
             raise ValueError(
                 "Petri net index or place index is out of bounds.")
+        if float(capacity) <= 0:
+            raise ValueError("Capacity must be strictly positive.")
         self.capacities[pn_idx, place_idx] = capacity
 
     def set_weight(self, pn_idx, weight_idx, weight):
         if pn_idx >= self.num_pns or weight_idx >= self.length_pns:
             raise ValueError(
                 "Petri net index or weight index is out of bounds.")
+        if float(weight) <= 0:
+            raise ValueError("Weight must be strictly positive.")
         self.weights[pn_idx, weight_idx] = weight
 
     def fire_transition(self, pn_idx, transition_idx):

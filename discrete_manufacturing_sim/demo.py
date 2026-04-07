@@ -5,6 +5,7 @@ construction details behind a small configuration object and a few helper
 functions.
 """
 
+import random
 from dataclasses import dataclass
 
 import torch
@@ -27,6 +28,11 @@ class DemoConfig:
     mean: float = 10.0
     spread: float = 2.0
     steps: int = 25
+    distribution_type: str = "uniform"
+    std_dev: float = 0.4
+    seed: int | None = 0
+    event_means: tuple[float, float, float] | None = None
+    capacities: tuple[float, ...] | None = None
 
 
 def build_linear_adjacency(num_nodes: int) -> torch.Tensor:
@@ -51,9 +57,41 @@ def build_uniform_distribution_data(config: DemoConfig):
     ]
 
 
+def build_distribution_data(config: DemoConfig):
+    """Create event timing metadata for the requested demo distribution type."""
+    distribution_type = config.distribution_type.lower()
+    if distribution_type == "uniform":
+        return build_uniform_distribution_data(config)
+
+    if distribution_type == "normal":
+        means = config.event_means or (
+            config.mean,
+            config.mean * 100,
+            config.mean * 20,
+        )
+        if len(means) != config.num_distributions:
+            raise ValueError("event_means must match num_distributions for the demo")
+        return [
+            [
+                {
+                    "type": "normal",
+                    "params": {"mean": float(means[event_idx]), "std_dev": config.std_dev},
+                }
+                for event_idx in range(config.num_distributions)
+            ]
+            for _ in range(config.num_nodes)
+        ]
+
+    raise ValueError(f"Unsupported demo distribution_type: {config.distribution_type}")
+
+
 def build_demo(config: DemoConfig | None = None) -> SimulationHandler:
     """Construct the minimal end-to-end simulation used by the demo and paper."""
     config = config or DemoConfig()
+
+    if config.seed is not None:
+        random.seed(config.seed)
+        torch.manual_seed(config.seed)
 
     adjacency_matrix = build_linear_adjacency(config.num_nodes)
     connectivity_graph = WeightedDirectedGraph(adjacency_matrix)
@@ -61,9 +99,16 @@ def build_demo(config: DemoConfig | None = None) -> SimulationHandler:
         length_pns=config.length_pns,
         connectivity_graph=connectivity_graph,
     )
+
+    if config.capacities is not None:
+        if len(config.capacities) != config.num_nodes:
+            raise ValueError("capacities must provide one output capacity per node")
+        for node_idx, output_capacity in enumerate(config.capacities):
+            petri_net.set_capacity(node_idx, config.length_pns - 1, output_capacity)
+
     fsm = ProductionAssetFSM()
 
-    distribution_data = build_uniform_distribution_data(config)
+    distribution_data = build_distribution_data(config)
     sampler = MultiDistributionSampler(
         config.num_nodes,
         config.num_distributions,

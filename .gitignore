@@ -27,3 +27,5 @@ venv/
 
 # Generated artifacts
 output*.png
+experiments/**/outputs/*
+!experiments/**/outputs/.gitkeep

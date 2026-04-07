@@ -1,0 +1,44 @@
+name: simple_line_3_node
+description: Minimal 3-node linear production line example.
+
+seed: 3
+output_dir: experiments/simple_line/outputs
+
+graph:
+  num_nodes: 3
+  edges:
+    - {source: 0, target: 1, weight: 1}
+    - {source: 1, target: 2, weight: 1}
+
+petri:
+  length_pns: 2
+  initial_markings:
+    - [0, 0]
+    - [0, 0]
+    - [0, 0]
+  capacities:
+    - [1, 3]
+    - [1, 3]
+    - [1, 1000]
+  weights:
+    - [1, 1]
+    - [1, 1]
+    - [1, 1]
+
+events:
+  defaults:
+    cycle_time:
+      type: normal
+      mean: 60.0
+      std_dev: 0.2
+    failure_time:
+      type: normal
+      mean: 7200.0
+      std_dev: 1.0
+    repair_time:
+      type: normal
+      mean: 900.0
+      std_dev: 0.5
+
+stop_conditions:
+  max_time: 3600
