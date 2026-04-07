@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "process-time-series"
+version = "0.1.0"
+description = "Discrete manufacturing simulation tools and reproducible research demos."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Project contributors" }]
+dependencies = [
+  "numpy",
+  "pandas",
+  "matplotlib",
+  "networkx",
+  "tqdm",
+  "torch",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "jupyter",
+]
+
+[tool.setuptools.packages.find]
+include = ["discrete_manufacturing_sim*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

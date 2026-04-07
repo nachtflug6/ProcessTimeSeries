@@ -1,6 +1,8 @@
-pandas
 numpy
+pandas
 tqdm
 matplotlib
-jupyter
 networkx
+torch
+pytest
+jupyter
